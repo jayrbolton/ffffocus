@@ -9,7 +9,7 @@ const patch = snabbdom.init([
 , require('snabbdom/modules/eventlisteners')
 ])
 
-let state$ = timer.init()
+let state$ = timer.init({audioPath: 'audio/bell.mp3'})
 flyd.map(s => console.log('accruedTime', s.get("accruedTime")), state$)
 flyd.map(s => console.log('focusTime', s.get("focusTime")), state$)
 flyd.map(s => console.log('finishedTasks', s.get("finishedTasks").toJS()), state$)
