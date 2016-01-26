@@ -10,6 +10,10 @@ const patch = snabbdom.init([
 ])
 
 let state$ = timer.init()
+flyd.map(s => console.log('accruedTime', s.get("accruedTime")), state$)
+flyd.map(s => console.log('focusTime', s.get("focusTime")), state$)
+flyd.map(s => console.log('finishedTasks', s.get("finishedTasks").toJS()), state$)
+flyd.map(s => console.log('currentTask', s.get("currentTask")), state$)
 
 let container = document.querySelector('#container')
 let vtree$ = flyd.map(timer.view, state$)
