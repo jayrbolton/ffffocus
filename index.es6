@@ -1,6 +1,6 @@
 import snabbdom from 'snabbdom'
 import flyd from 'flyd'
-import timer from './timer.es6'
+import timer from './lib/timer.es6'
 
 const patch = snabbdom.init([
   require('snabbdom/modules/class')

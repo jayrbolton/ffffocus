@@ -4,8 +4,8 @@
   "description": "Computer work focus app",
   "main": "index.html",
   "scripts": {
-    "start": "budo lib/index.es6:lib/bundle.js -l -v -- -t babelify -d -e",
-    "build": "browserify -t babelify lib/index.es6 | uglifyjs -cm > lib/bundle.js"
+    "start": "budo index.es6:bundle.js -l -v -- -t babelify -d -e",
+    "build": "browserify -t babelify index.es6 | uglifyjs -cm > bundle.js"
   },
   "author": "jay r bolton <jayrbolton@gmail.com> (http://jayrbolton.com/)",
   "license": "ISC",
