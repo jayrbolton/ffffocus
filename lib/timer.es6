@@ -144,7 +144,7 @@ const newTask = state =>
       h('input.field.col-5',  {on: {change: state.get('newTask$')}, props: {type: 'text', placeholder: 'Task outcome'}})
     , ' '
       ].concat(
-        fromJS([0.05, 5, 10, 15, 20, 25, 30])
+        fromJS([5, 10, 15, 20, 25, 30])
         .map(m => h('button.btn.btn-primary.bg-olive', {on: {click: [state.get('newTimer$'), m]}}, m + 'm'))
         .interpose(' ').toJS()
       )
