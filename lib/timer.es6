@@ -22,6 +22,9 @@ const init = config => {
   , finishedTasks: lsTasks ? fromJS(JSON.parse(lsTasks)) : []
   })
 
+  // Bell to play on timeup (gets played in the updater functions)
+  let audio = new Audio('../audio/bell.mp3')
+
   // task cancellation and finishing will both reset the timer
   let resetTimer$ = flyd.merge(
     defaultState.get('cancelTask$')
@@ -33,6 +36,11 @@ const init = config => {
     countdownStream(defaultState.get('newTimer$'), resetTimer$)
   , countdownStream(defaultState.get('addTime$'), resetTimer$)
   )
+
+  // Play audio when the countdown stream hits 0
+  // Stop the audio when they hit "Finished", "Cancel", or an add time button
+  flyd.map(()=> {audio.currentTime = 0; audio.play()},  flyd_filter(n => n === 0, countdown$))
+  flyd.map(()=> audio.pause(), flyd.merge(resetTimer$, defaultState.get('addTime$')))
 
   let state$ = flyd.immediate(flyd_scanMerge([
     [defaultState.get('newTimer$'),     (state, m)  => state.set('focusTime', m)]
@@ -136,7 +144,7 @@ const newTask = state =>
       h('input.field.col-5',  {on: {change: state.get('newTask$')}, props: {type: 'text', placeholder: 'Task outcome'}})
     , ' '
       ].concat(
-        fromJS([5, 10, 15, 20, 25, 30])
+        fromJS([0.05, 5, 10, 15, 20, 25, 30])
         .map(m => h('button.btn.btn-primary.bg-olive', {on: {click: [state.get('newTimer$'), m]}}, m + 'm'))
         .interpose(' ').toJS()
       )
