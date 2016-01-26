@@ -23,7 +23,7 @@ const init = config => {
   })
 
   // Bell to play on timeup (gets played in the updater functions)
-  let audio = new Audio('../audio/bell.mp3')
+  let audio = new Audio('/audio/bell.mp3')
 
   // task cancellation and finishing will both reset the timer
   let resetTimer$ = flyd.merge(
