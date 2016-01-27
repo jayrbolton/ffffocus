@@ -2,11 +2,13 @@ import h from 'snabbdom/h'
 import flyd from 'flyd'
 import flyd_scanMerge from 'flyd/module/scanmerge'
 import flyd_flatMap from 'flyd/module/flatmap'
-import flyd_every from './flyd-every.es6'
 import flyd_filter from 'flyd/module/filter'
-import flyd_delay from './flyd-delay.es6'
+import flyd_every from 'flyd/module/every'
+import flyd_afterSilence from 'flyd/module/aftersilence'
+import flyd_takeUntil from 'flyd/module/takeuntil'
 import {fromJS} from 'immutable'
 import formatMinutes from './format-minutes.es6'
+import flyd_scan from './flyd-scan.es6'
 
 const init = config => {
   let lsTasks = localStorage.getItem('finishedTasks')
@@ -19,10 +21,10 @@ const init = config => {
   , removeFinished$: flyd.stream()
   , focusTime: -1     // -1 denotes no timing happening; 0 denotes timer is finished; > 0 denotes timer is going
   , accruedTime: 0    // total time spent at a task so far
-  , finishedTasks: lsTasks ? fromJS(JSON.parse(lsTasks)) : []
+  , finishedTasks: lsTasks ? JSON.parse(lsTasks) : []
   })
 
-  // Bell to play on timeup (gets played in the updater functions)
+  // Bell to play on timeup (gets played on some streams below)
   let audio = new Audio(config.audioPath)
 
   // task cancellation and finishing will both reset the timer
@@ -30,7 +32,7 @@ const init = config => {
     defaultState.get('cancelTask$')
   , defaultState.get('finishTask$')
   )
-
+  
   // A stream of seconds, initialized by every newTimer$ and any addTime$
   let countdown$ = flyd.merge(
     countdownStream(defaultState.get('newTimer$'), resetTimer$)
@@ -71,7 +73,7 @@ const appendFinishedTask = state =>
   state.set('finishedTasks',
     state.get('finishedTasks').unshift(fromJS({
       name: state.get('currentTask') || 'Unnamed task'
-    , time: state.get('accruedTime')
+    , time: state.get('accruedTime') - 1 // subtract one because it will +1 for 00:00
     }))
   )
 
@@ -82,15 +84,12 @@ const resetTimerState = state =>
 
 // Create a stream of seconds counting down from times on the newTimer$ stream
 const countdownStream = (newTimer$, resetTimer$) => {
-  return flyd_flatMap(
-    m => flyd.endsOn(
-      flyd.merge(resetTimer$, flyd_delay(m * 60000))
-    , flyd.scan(n => n - 1, m * 60 - 1, flyd_every(1000))
-    )
-  , newTimer$
-  )
+  return flyd_flatMap(m => {
+    let seconds$ = flyd_scan(s => s - 1, m * 60 + 1, flyd_every(1000))
+    let end$ = flyd_filter(s => s < 0, seconds$)
+    return flyd.endsOn( flyd.merge(resetTimer$, end$) , seconds$)
+  }, newTimer$)
 }
-
 
 const view = state => {
   let content
