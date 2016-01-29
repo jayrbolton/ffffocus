@@ -83,7 +83,7 @@ const appendFinishedTask = state =>
 const resetTimerState = state =>
   state.set('focusTime', -1)
        .set('accruedTime', 0)
-       .delete('currentTask')
+       // .delete('currentTask')
 
 
 // Create a stream of seconds counting down from times on the newTimer$ stream
@@ -156,7 +156,7 @@ const newTask = state =>
       write a short description of its outcome,
       and choose a goal amount of time you think you can finish it in.`)
   , h('form', {on: {click: e => e.preventDefault()}}, [
-      h('input.field.col-5',  {on: {change: state.get('newTask$')}, props: {type: 'text', placeholder: 'Task outcome'}})
+      h('input.field.col-5',  {on: {change: state.get('newTask$')}, props: {type: 'text', placeholder: 'Task outcome', value: state.get('currentTask')}})
     , ' '
       ].concat(
         Im([5, 10, 15, 20, 25, 30])
