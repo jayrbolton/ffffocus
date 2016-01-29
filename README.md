@@ -5,3 +5,20 @@ This is a tiny frontend app that I use to help myself focus and get faster at wo
 I built this using this flim-flam frontend architecture: [https://github.com/jayrbolton/functional-frontend-architecture](https://github.com/jayrbolton/functional-frontend-architecture)
 
 It will cache all your completed tasks to localStorage and will save your task history until you clear your browser.
+
+#### flow
+
+https://en.wikipedia.org/wiki/Flow_(psychology)
+
+requirements:
+
+- Having clear and immediate feedback
+  - Know what the positive outcome means for a task < 30min
+- Feeling that you have the potential to succeed / confidence about the task
+  - Turn goal into a single non-daunting action
+- Freedom from distractions
+- Freedom from anxiety 
+  - Start work with 5m meditation
+- Have a clear set of goals and progress
+  - Planning phase and doing phase 
+  - Write down an over-arching project, then think of a short actionable next step with a real outcome
