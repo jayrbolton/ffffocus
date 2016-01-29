@@ -6,6 +6,7 @@ import flyd_filter from 'flyd/module/filter'
 import flyd_every from 'flyd/module/every'
 import flyd_afterSilence from 'flyd/module/aftersilence'
 import flyd_keepWhen from 'flyd/module/keepwhen'
+import moment from 'moment'
 import {fromJS as Im} from 'immutable'
 import formatMinutes from './format-minutes.es6'
 
@@ -76,7 +77,8 @@ const appendFinishedTask = state =>
   state.set('finishedTasks',
     state.get('finishedTasks').unshift(Im({
       name: state.get('currentTask') || 'Unnamed task'
-    , time: state.get('accruedTime') - 1 // subtract one because it will +1 for 00:00
+    , duration: state.get('accruedTime') - 1 // subtract one because it will +1 for 00:00
+    , time: Date.now()
     }))
   )
 
@@ -167,20 +169,35 @@ const newTask = state =>
   ])
 
 
-const taskHistory = state =>
-  h('table.table-light.mt3', [
-    h('thead', state.get('finishedTasks').count() ? [h('tr', [h('th', 'Finished Tasks'), h('th', ''), h('th', '')])] : '')
-  , h('tbody',
-      state.get('finishedTasks')
-      .map(
-        t => h('tr', [
-          h('td', t.get('name'))
-        , h('td', ' finished in '+ formatMinutes(t.get('time') / 60))
-        , h('td', [h('button.btn', {on: {click: [state.get('removeFinished$'), t]}}, 'X')])
+const taskHistory = state => {
+  if(state.get('finishedTasks').isEmpty()) return h('div', '')
+  tasks = state.get('finishedTasks').map(t => t.set('time', moment(t.get('time'))))
+  // Group tasks by day
+  let tasks = tasks.groupBy(t => Im([t.get('time').date(), t.get('time').month()]))
+  return h('div.finishedTasks', [
+    h('h3', 'Finished Tasks')
+  ].concat(
+    tasks.valueSeq().map(tasks =>
+      h('div.finishedTasks-day', [
+        h('h4', tasks.first().get('time').format('dddd, DD/MM/YY')) // String(group))
+      , h('table.table-light.mt3', [
+          h('tbody',
+            tasks.map(t =>
+              h('tr', [
+                h('td', t.get('name'))
+              , h('td', ' finished in '+ formatMinutes(t.get('duration') / 60))
+              , h('td', ' at ' + moment(t.get('time')).format('HH:MM'))
+              , h('td', [h('button.btn', {on: {click: [state.get('removeFinished$'), t]}}, 'X')])
+              ])
+            ).toJS()
+          )
         ])
-      ).toJS()
-    )
-  ])
+      ])
+    ).toJS()
+  ))
+  /*
+  */
+}
 
 
 module.exports = {view, init}
