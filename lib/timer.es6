@@ -1,4 +1,8 @@
+// Task timer/timeboxer!
+
+
 import h from 'snabbdom/h'
+import R from 'ramda'
 import flyd from 'flyd'
 import flyd_scanMerge from 'flyd/module/scanmerge'
 import flyd_flatMap from 'flyd/module/flatmap'
@@ -7,86 +11,65 @@ import flyd_every from 'flyd/module/every'
 import flyd_afterSilence from 'flyd/module/aftersilence'
 import flyd_keepWhen from 'flyd/module/keepwhen'
 import moment from 'moment'
-import {fromJS as Im} from 'immutable'
 import formatMinutes from './format-minutes.es6'
 
-const init = config => {
-  let lsTasks = localStorage.getItem('finishedTasks')
-  let defaultState = Im({
-    newTimer$: flyd.stream()
-  , newTask$: flyd.stream()
-  , cancelTask$: flyd.stream()
-  , finishTask$: flyd.stream()
-  , addTime$: flyd.stream()
-  , removeFinished$: flyd.stream()
-  , pauseTimer$: flyd.stream(false)
-  , resetTimer$: flyd.stream()
-  , focusTime: -1     // -1 denotes no timing happening; 0 denotes timer is finished; > 0 denotes timer is going
-  , accruedTime: 0    // total time spent at a task so far
-  , finishedTasks: lsTasks ? JSON.parse(lsTasks) : []
-  , isPaused: false
-  })
+const init = (queue$) => {
+  let state = {
+    currentTask: false
+  , accruedSeconds: 0 // total accrued seconds of focus time
+  , startFocus$: queue$().focus$ // starting focus time comes from an event in the queue component
+  , addCountdown$: flyd.stream() // add time to the countdown stream
+  , pause$: flyd.stream() // pause focus time
+  , finishTask$: flyd.stream() // finish the current task
+  , cancelTask$: flyd.stream() // cancel out of focus time, jump back to queue
+  , isCountingDown: false // has the user added time for timeboxing?
+  , isPaused: false // is the timer paused?
+  }
 
   // Bell to play on timeup (gets played on some streams below)
-  let audio = new Audio(config.audioPath)
+  let audio = new Audio('audio/bell.mp3')
 
   // task cancellation and finishing will both reset the timer
-  let stopTimer$ = flyd.merge(
-    defaultState.get('cancelTask$')
-  , defaultState.get('finishTask$')
+  let resetTimer$ = flyd.merge(
+    state.cancelTask$
+  , state.finishTask$
   )
   
   // A stream of seconds, initialized by every newTimer$ and any addTime$
+  /*
   let countdown$ = flyd.merge(
-    countdownStream(defaultState.get('newTimer$'), defaultState.get('pauseTimer$'), defaultState.get('resetTimer$'), stopTimer$)
-  , countdownStream(defaultState.get('addTime$'),  defaultState.get('pauseTimer$'), defaultState.get('resetTimer$'), stopTimer$)
+    countdownStream(state.newTimer$, state.pauseTimer$, state.resetTimer$, resetTimer$)
+  , countdownStream(state.addTime$,  state.pauseTimer$, state.resetTimer$, resetTimer$)
   )
+  */
 
   // Play audio when the countdown stream hits 0
   // Stop the audio when they hit "Finished", "Cancel", or an add time button
+  /*
   flyd.map(()=> {audio.currentTime = 0; audio.play()},  flyd_filter(n => n === 0, countdown$))
-  flyd.map(()=> audio.pause(), flyd.merge(stopTimer$, defaultState.get('addTime$')))
+  flyd.map(()=> audio.pause(), flyd.merge(resetTimer$, state.addTime$))
+  */
 
   let state$ = flyd.immediate(flyd_scanMerge([
-    [defaultState.get('newTimer$'),       (state, m)  => state.set('focusTime', m)]
-  , [defaultState.get('newTask$'),        (state, ev) => state.set('currentTask', ev.target.value)]
-  , [defaultState.get('finishTask$'),     appendFinishedTask]
-  , [stopTimer$,                          resetTimerState]
-  , [countdown$,                          (state, n)  => state.set('focusTime', n).set('accruedTime', state.get('accruedTime') + 1)]
-  , [defaultState.get('removeFinished$'), removeFinishedTask]
-  , [defaultState.get('pauseTimer$'),     (state, p) => state.set('isPaused', p)]
-  ], defaultState))
+        /*
+    [state.newTimer$,       (state, m)  => R.assoc('focusTime', m, state)]
+  , [state.newTask$,        (state, ev) => R.assoc('currentTask', ev.target.value, state)]
+  , [state.finishTask$,     appendFinishedTask]
+  , [resetTimer$,           resetTimerState]
+  , [countdown$,            (state, n)  => R.compose(R.assoc('focusTime', n), R.assoc('accruedTime', state.accruedTime + 1))(state)]
+  , [state.removeFinished$, removeFinishedTask]
+  , [state.pauseTimer$,     (state, p) => R.assoc('isPaused', p, state)]
+  */
+  ], state))
 
   // Cache finished tasks to localStorage
   flyd.map(
-    state => localStorage.setItem('finishedTasks', JSON.stringify(state.get('finishedTasks')))
+    state => localStorage.setItem('finishedTasks', JSON.stringify(state.finishedTasks))
   , state$
   )
-  
+
   return state$
 }
-
-const removeFinishedTask = (state, task) =>
-  state.set('finishedTasks',
-    state.get('finishedTasks').delete(
-      state.get('finishedTasks').findIndex(t => t.equals(task))
-  ))
-
-// Updater function that appends the last timed task to the finishedTasks list
-const appendFinishedTask = state =>
-  state.set('finishedTasks',
-    state.get('finishedTasks').unshift(Im({
-      name: state.get('currentTask') || 'Unnamed task'
-    , duration: state.get('accruedTime') - 1 // subtract one because it will +1 for 00:00
-    , time: Date.now()
-    }))
-  )
-
-const resetTimerState = state =>
-  state.set('focusTime', -1)
-       .set('accruedTime', 0)
-       // .delete('currentTask')
-
 
 // Create a stream of seconds counting down from times on the newTimer$ stream
 // You can pause it, reset it, or stop it
@@ -105,31 +88,105 @@ const countdownStream = (start$, pause$, reset$, stop$) => {
 
 
 const view = state => {
-  let content
-  if(state.get('focusTime') === 0) {
-    content = [timerDone(state)]
-  } else if(state.get('focusTime') > 0) {
-    content = [timer(state)]
-  } else {
-    content = [newTask(state), taskHistory(state)]
-  }
-  return h('div.container.p2', [h('main', content)])
+  let timer = state.isCountingDown
+  ? h('p', [
+      'try to finish within '
+    , formatMinutes(state.secondsLeft)
+    ])
+  : h('p', [
+      'you\'ve been focusing on this task for '
+    , formatMinutes(state.accruedSeconds)
+    ])
+
+  return h('div.timer', [
+    h('h3', [
+      'focus on '
+    , state.currentTask.name
+    ])
+  , timer
+  , addTime(state)
+  , controls(state)
+  ])
 }
-  
+
+const addTime = state => {
+  return h('p', 'add time here')
+}
+
+const controls = state => {
+  return h('p', 'controls here')
+}
+    /*(
+    ])
+    h('p', [
+      'Try to finish '
+    , h('input.field', {props: {type: 'text', value: state.currentTask || 'your current task'}})
+    , ' '
+    , ' within '
+    , h('strong', formatMinutes(state.focusTime / 60))
+    ])
+  , h('button.btn.btn-primary', {on: {click: state.finishTask$}}, 'Finished')
+  , ' '
+  , h('button.btn.btn-primary.bg-teal', {on: {click: [state.pauseTimer$, !state.isPaused]}}
+    , state.isPaused ? 'Start' : 'Pause')
+  , ' '
+  , h('button.btn.btn-primary.bg-gray', {on: {click: state.cancelTask$}}, 'Cancel')
+  , h('div.mt2', [
+      h('p', 'Add more time:')
+    ].concat(
+      R.compose(
+        R.intersperse(' ')
+      , R.map(m => h('button.btn.btn-primary.bg-olive', {on: {click: [state.addTime$, m]}}, '+' + m + 'm'))
+      )([0.05, 3, 5, 7, 10, 15, 20])
+    ))
+  ])
+  */
+
+module.exports = {view, init}
+
+/*
+const init = config => {
+
+
+const removeFinishedTask = (state, task) =>
+  R.assoc('finishedTasks', R.filter(t => t.name !== task.name), state.finishedTasks)
+
+// Updater function that appends the last timed task to the finishedTasks list
+const appendFinishedTask = state =>
+  R.assoc('finishedTasks', R.prepend({
+      name: state.currentTask || 'Unnamed task'
+    , duration: state.accruedTime - 1 // subtract one because it will +1 for 00:00
+    , time: Date.now()
+  }, state.finishedTasks))
+
+const resetTimerState = state =>
+  R.compose(
+    R.assoc('focusTime', -1)
+  , R.assoc('accruedTime', 0)
+  )(state)
+
+
+const view = state => {
+  let content
+  if(state.currentPage === 'queue') {
+    content = queue.view(state.queue)
+  } else if(state.currentPage === 'finished') {
+    content = finished.view(state.finished)
+  }
+  return h('div.container.p2', [
+    h('ul.tabNav', [
+      h('li', [h('a.btn.btn-primary.bg-gray', {on: {click: [state.jumpPage$, 'queue']},    class: {'bg-teal': state.currentPage === 'queue'}},    'Queue')])
+    , h('li', [h('a.btn.btn-primary.bg-gray', {on: {click: [state.jumpPage$, 'finished']}, class: {'bg-teal': state.currentPage === 'finished'}}, 'Finished')])
+    ])
+  , h('main', [content])
+  ])
+}
 
 const timerDone = state =>
   h('div.timerDone', [
     h('p', 'Did you finish?')
-  , h('button.btn.btn-primary', {on: {click: state.get('finishTask$')}}, 'Finished')
+  , h('button.btn.btn-primary', {on: {click: state.finishTask$}}, 'Finished')
   , ' '
-  , h('button.btn.btn-primary.bg-gray', {on: {click: state.get('cancelTask$')}}, 'Cancel')
-  , h('div.mt2', [
-      h('p', 'Or, add more time')
-    ].concat(
-      Im([3, 5, 7, 10, 15, 20])
-      .map(m => h('button.btn.btn-primary.bg-olive', {on: {click: [state.get('addTime$'), m]}}, '+' + m + 'm'))
-      .interpose(' ').toJS()
-    ))
   ])
 
 
@@ -137,18 +194,25 @@ const timer = state =>
   h('div.timer', [
     h('p', [
       'Try to finish '
-    , h('strong', state.get('currentTask') || 'your current task')
+    , h('input.field', {props: {type: 'text', value: state.currentTask || 'your current task'}})
+    , ' '
     , ' within '
-    , h('strong', formatMinutes(state.get('focusTime') / 60))
+    , h('strong', formatMinutes(state.focusTime / 60))
     ])
-  , h('button.btn.btn-primary', {on: {click: state.get('finishTask$')}}, 'Finished')
+  , h('button.btn.btn-primary', {on: {click: state.finishTask$}}, 'Finished')
   , ' '
-  , h('button.btn.btn-primary.bg-teal', {on: {click: [state.get('pauseTimer$'), !state.get('isPaused')]}}
-    , state.get('isPaused') ? 'Start' : 'Pause')
+  , h('button.btn.btn-primary.bg-teal', {on: {click: [state.pauseTimer$, !state.isPaused]}}
+    , state.isPaused ? 'Start' : 'Pause')
   , ' '
-  , h('button.btn.btn-primary.bg-green', {on: {click: [state.get('resetTimer$'), true]}}, 'Reset')
-  , ' '
-  , h('button.btn.btn-primary.bg-gray', {on: {click: state.get('cancelTask$')}}, 'Cancel')
+  , h('button.btn.btn-primary.bg-gray', {on: {click: state.cancelTask$}}, 'Cancel')
+  , h('div.mt2', [
+      h('p', 'Add more time:')
+    ].concat(
+      R.compose(
+        R.intersperse(' ')
+      , R.map(m => h('button.btn.btn-primary.bg-olive', {on: {click: [state.addTime$, m]}}, '+' + m + 'm'))
+      )([0.05, 3, 5, 7, 10, 15, 20])
+    ))
   ])
 
 
@@ -158,46 +222,47 @@ const newTask = state =>
       write a short description of its outcome,
       and choose a goal amount of time you think you can finish it in.`)
   , h('form', {on: {click: e => e.preventDefault()}}, [
-      h('input.field.col-5',  {on: {change: state.get('newTask$')}, props: {type: 'text', placeholder: 'Task outcome', value: state.get('currentTask')}})
+      h('input.field.col-5',  {on: {change: state.newTask$}, props: {type: 'text', placeholder: 'Task outcome', value: state.currentTask}})
     , ' '
       ].concat(
-        Im([5, 10, 15, 20, 25, 30])
-        .map(m => h('button.btn.btn-primary.bg-olive', {on: {click: [state.get('newTimer$'), m]}}, m + 'm'))
-        .interpose(' ').toJS()
+        R.compose(
+          R.intersperse(' ')
+        , R.map(m => h('button.btn.btn-primary.bg-olive', {on: {click: [state.newTimer$, m]}}, m + 'm'))
+        )([0.05, 5, 10, 15, 20, 25, 30])
       )
     )
   ])
 
 
 const taskHistory = state => {
-  if(state.get('finishedTasks').isEmpty()) return h('div', '')
-  tasks = state.get('finishedTasks').map(t => t.set('time', moment(t.get('time'))))
+  if(!state.finishedTasks.length) return h('div', '')
+  tasks = state.finishedTasks.map(t => R.assoc('time', moment(t.time), t))
   // Group tasks by day
-  let tasks = tasks.groupBy(t => Im([t.get('time').date(), t.get('time').month()]))
+  let tasks = tasks.groupBy(t => [t.time.date(), t.time.month()])
   return h('div.finishedTasks', [
     h('h3', 'Finished Tasks')
   ].concat(
     tasks.valueSeq().map(tasks =>
       h('div.finishedTasks-day', [
-        h('h4', tasks.first().get('time').format('dddd, DD/MM/YY')) // String(group))
+        h('h4', tasks.first().time.format('dddd, DD/MM/YY')) // String(group))
       , h('table.table-light.mt3', [
           h('tbody',
             tasks.map(t =>
               h('tr', [
-                h('td', t.get('name'))
-              , h('td', ' finished in '+ formatMinutes(t.get('duration') / 60))
-              , h('td', ' at ' + moment(t.get('time')).format('HH:MM'))
-              , h('td', [h('button.btn', {on: {click: [state.get('removeFinished$'), t]}}, 'X')])
+                h('td', t.name)
+              , h('td', ' finished in '+ formatMinutes(t.duration / 60))
+              , h('td', ' at ' + moment(t.time).format('HH:MM'))
+              , h('td', [h('button.btn', {on: {click: [state.removeFinished$, t]}}, 'X')])
               ])
-            ).toJS()
+            )
           )
         ])
       ])
-    ).toJS()
+    )
   ))
   /*
-  */
 }
+  */
 
 
 module.exports = {view, init}
