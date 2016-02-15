@@ -13,8 +13,15 @@
 }
 
 /* Dragging over a row to drop on */
-.isOver td {
-  border-top: 3em solid #ddd;
+tr.isOver td, tr.isOver:last-child td {
+  border-top: 2px dashed #888;
+  border-bottom: 2px dashed #888;
+}
+tr.isOver td:first-child {
+  border-left: 2px dashed #888;
+}
+tr.isOver td:last-child {
+  border-right: 2px dashed #888;
 }
 
 .isDragging {
