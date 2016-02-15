@@ -98,7 +98,7 @@ const taskRow = remove$ => task =>
   , task.duration
     ? h('td.py1.px2.align-middle', ['focused for ', moment.duration(task.duration, 'seconds').format('mm:ss', {trim: false})])
     : h('td.py1.px2.align-middle', '')
-  , h('td.py1.px2.align-middle', [h('a.btn.red', {on: {click: [remove$, task.name]}, props: {innerHTML: '&times;'}})])
+  , h('td.py1.px2.align-middle', [h('a.btn.red', {on: {click: [remove$, task.name]}}, [h('span.icon-blocked')])])
   ])
 
 module.exports = {view, init}

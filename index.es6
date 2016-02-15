@@ -7,6 +7,7 @@ import R from 'ramda'
 const patch = snabbdom.init([
   require('snabbdom/modules/class')
 , require('snabbdom/modules/props')
+, require('snabbdom/modules/attributes')
 , require('snabbdom/modules/style')
 , require('snabbdom/modules/eventlisteners')
 ])
