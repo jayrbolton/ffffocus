@@ -8,7 +8,9 @@ import flyd_filter from 'flyd/module/filter'
 import flyd_mergeAll from 'flyd/module/mergeall'
 import moment from 'moment'
 
-import flyd_ui from './flyd-ui.es6'
+// local
+import getFormData from './get-form-data.es6'
+import prependTasks from './prepend-tasks.es6'
 
 const init = events => {
   events = R.merge({
@@ -28,18 +30,13 @@ const init = events => {
 
   let newTask$ = R.compose(
     flyd.map(name => ({name: name, time: Date.now()}))
-  , flyd.map(ev => {
-      ev.preventDefault()
-      let val = ev.currentTarget.querySelector('input').value
-      ev.target.reset()
-      return val
-    })
+  , flyd.map(getFormData)
   )(events.submit$)
 
   let saveToLS$ = flyd_mergeAll([newTask$, events.remove$, events.finishTask$])
 
   let updates = [
-    [newTask$,            (t, state) => R.assoc('tasks', R.prepend(t, state.tasks), state)]
+    [newTask$,            prependTasks]
   , [events.remove$,      (name, state) => R.assoc('tasks', R.filter(task => task.name !== name, state.tasks), state)]
   , [events.finishTask$,  finishTask]
   , [saveToLS$,           persistLS]
