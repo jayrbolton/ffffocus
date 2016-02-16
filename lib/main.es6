@@ -30,7 +30,7 @@ const init = ()=> {
   , flyd.map(()=> 'timer', events.startFocus$)
   ])
 
-  let saveToLS$ = flyd_mergeAll([jumpPage$])
+  let saveToLS$ = flyd_filter(p => p !== 'timer', jumpPage$)
 
   // Array of pairs of streams and updater functions that set the state based on new values from the streams
   let updates = [
