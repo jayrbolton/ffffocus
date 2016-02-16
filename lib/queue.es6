@@ -26,6 +26,7 @@ const init = events => {
   , dragend$: flyd.stream()
   , dragover$: flyd.stream()
   , filter$: flyd.stream()
+  , editTask$: flyd.stream()
   }, events)
 
   let defaultState = { tasks: [] } // queued unfinished tasks
@@ -59,9 +60,9 @@ const init = events => {
 
   let searchTerm$ = flyd.map(ev => ev.currentTarget.value, events.filter$)
 
-  flyd.map(console.log.bind(console), searchTerm$)
+  let edit$ = flyd.map(ev => [ev.currentTarget.textContent, Number(ev.currentTarget.getAttribute("data-idx"))], events.editTask$)
 
-  let saveToLS$ = flyd_mergeAll([newTask$, events.remove$, events.finishTask$, events.dragend$])
+  let saveToLS$ = flyd_mergeAll([newTask$, events.remove$, events.finishTask$, events.dragend$, edit$])
 
   let updates = [
     [newTask$,            prependTasks]
@@ -72,9 +73,17 @@ const init = events => {
   , [events.dragend$,     dropTask]
   , [saveToLS$,           persistLS]
   , [searchTerm$,         filterTasks]
+  , [edit$,               editTask]
   ]
 
   return {events, defaultState, updates}
+}
+
+const editTask = (pair, state) => {
+  let [name, idx] = pair
+  let task = R.assoc('name', name, state.tasks[idx])
+  let tasks = R.update(idx, task, state.tasks)
+  return R.assoc( 'tasks' , tasks, state)
 }
 
 
@@ -148,7 +157,7 @@ const table = (events, state) => {
 }
 
 const rows = (events, filtered, state) =>
-  R.map(task =>
+  R.addIndex(R.map)((task, idx) =>
     h('tr', {
       props: { draggable: true}
     , class: { isOver: state.rowOver === task.time, isDragging: state.currentlyDragging === task.time }
@@ -158,7 +167,14 @@ const rows = (events, filtered, state) =>
       , dragstart: events.dragstart$
       }
     }, [
-      h('td.px2.py1.align-middle', [h('strong', task.name)])
+      h('td.px2.py1.align-middle', [
+        h('span.bold.cursor--type', {
+          on: {keyup: events.editTask$}
+        , attrs: {'data-idx': idx}
+        , props: {contentEditable: true}
+        }
+      , task.name)
+      ])
     , h('td.px2.py1.align-middle.gray', 'added ' + moment(task.time).fromNow())
     , h('td.px2.py1.align-middle', [h('a.btn.green', {on: {click: [events.finishTask$, [task, 0]]}}, [h('span.icon-checkmark'), ' '])])
     , h('td.px2.py1.align-middle', [h('a.btn.outline.blue',  {on: {click: [events.startFocus$, task]}}, 'Focus')])

@@ -12,6 +12,10 @@
   cursor: grab;
 }
 
+[contentEditable] {
+  cursor: text;
+}
+
 /* Dragging over a row to drop on */
 tr.isOver td, tr.isOver:last-child td {
   border-top: 2px dashed #888;
