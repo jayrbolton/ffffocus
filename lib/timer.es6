@@ -137,7 +137,7 @@ const addTime = (txt, events, state) => {
     R.intersperse(" ")
   , R.map(m => h('a.btn.btn-primary.bg-olive', {on: {click: [events.setLimit$, m]}}, [String(m) + 'm']))
   , R.filter(m => !state.limit || m * 60 > state.limit)
-  )([0.05, 5, 10, 15, 20, 25, 30, 45, 60])
+  )([5, 10, 15, 20, 25, 30, 45, 60])
 
   return h('div.timebox.mt2.mb2', 
     R.concat(
