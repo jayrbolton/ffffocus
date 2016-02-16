@@ -9,6 +9,7 @@ import flyd_afterSilence from 'flyd/module/aftersilence'
 import flyd_keepWhen from 'flyd/module/keepwhen'
 import flyd_mergeAll from 'flyd/module/mergeall'
 import flyd_scan from './flyd-better-scan'
+import flyd_lift from 'flyd/module/lift'
 import moment from 'moment'
 import 'moment-duration-format'
 
@@ -26,12 +27,22 @@ const init = events => {
   , setLimit$: flyd.stream()
   }, events)
 
-  // Bell to play on timeup (gets played on some streams below)
-  let audio = new Audio('audio/bell.mp3')
-
   let resetTimer$ = flyd_mergeAll([events.stopFocus$, events.finishTask$])
 
   let timer$ = timerStream(events.startFocus$, events.pauseTimer$, resetTimer$)
+
+  // Bell to play on timeup (gets played on some streams below)
+  let audio = new Audio('audio/bell.mp3')
+  let play$ = R.compose(
+    flyd.map(()=> {audio.currentTime = 0; audio.play()})
+  , flyd.map(console.log.bind(console))
+  , flyd_filter(R.apply(R.equals))
+  , flyd_filter(R.apply((s, l) => s && l))
+  )(flyd_lift((t, l) => [t, l *60], timer$, events.setLimit$))
+
+  flyd.map(()=> audio.pause(), flyd_mergeAll([events.pauseTimer$, resetTimer$, events.finishTask$]))
+
+  // flyd.map(console.log.bind(console), flyd_lift((t, l) => [t, l*60], timer$, events.setLimit$))
 
   // Play audio when the countdown stream hits 0
   // Stop the audio when they hit "Finished", "Cancel", or an add time button
@@ -126,7 +137,7 @@ const addTime = (txt, events, state) => {
     R.intersperse(" ")
   , R.map(m => h('a.btn.btn-primary.bg-olive', {on: {click: [events.setLimit$, m]}}, [String(m) + 'm']))
   , R.filter(m => !state.limit || m * 60 > state.limit)
-  )([5, 10, 15, 20, 25, 30, 45, 60])
+  )([0.05, 5, 10, 15, 20, 25, 30, 45, 60])
 
   return h('div.timebox.mt2.mb2', 
     R.concat(
