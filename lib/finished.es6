@@ -27,7 +27,7 @@ const init = events => {
 
 
   let newFinishedTask$ = R.compose(
-    flyd.map(name => ({name: name, finishedAt: Date.now()}))
+    flyd.map(name => ({name: name, finishedAt: Date.now(), time: Date.now()}))
   , flyd.map(getFormData)
   )(events.submit$)
 
@@ -55,8 +55,8 @@ const finishTask = (pair, state) => {
   return R.assoc('tasks', R.prepend(task, state.tasks), state)
 }
 
-const removeTask = (name, state) =>
-  R.assoc('tasks', R.filter(t => t.name !== name, state.tasks), state)
+const removeTask = (time, state) =>
+  R.assoc('tasks', R.filter(t => t.time !== time, state.tasks), state)
 
 
 const view = (events, state) => {
@@ -98,7 +98,7 @@ const taskRow = remove$ => task =>
   , task.duration
     ? h('td.py1.px2.align-middle', ['focused for ', moment.duration(task.duration, 'seconds').format('mm:ss', {trim: false})])
     : h('td.py1.px2.align-middle', '')
-  , h('td.py1.px2.align-middle', [h('a.btn.red', {on: {click: [remove$, task.name]}}, [h('span.icon-blocked')])])
+  , h('td.py1.px2.align-middle', [h('a.btn.red', {on: {click: [remove$, task.time]}}, [h('span.icon-blocked')])])
   ])
 
 module.exports = {view, init}

@@ -66,7 +66,7 @@ const init = events => {
 
   let updates = [
     [newTask$,            prependTasks]
-  , [events.remove$,      (name, state) => R.assoc('tasks', R.filter(task => task.name !== name, state.tasks), state)]
+  , [events.remove$,      (time, state) => R.assoc('tasks', R.filter(task => task.time !== time, state.tasks), state)]
   , [events.finishTask$,  finishTask]
   , [rowOver$,            R.assoc('rowOver')]
   , [dragging$,           R.assoc('currentlyDragging')]
@@ -121,7 +121,7 @@ const persistLS = (_, state) => {
 
 const finishTask = (pair, state) => {
   let [task, _] = pair
-  return R.assoc('tasks', R.filter(t => t.name !== task.name && t.time !== task.time, state.tasks), state)
+  return R.assoc('tasks', R.filter(t => t.time !== task.time, state.tasks), state)
 }
 
 const view = (events, state) => {
@@ -178,7 +178,7 @@ const rows = (events, filtered, state) =>
     , h('td.px2.py1.align-middle.gray', 'added ' + moment(task.time).fromNow())
     , h('td.px2.py1.align-middle', [h('a.btn.green', {on: {click: [events.finishTask$, [task, 0]]}}, [h('span.icon-checkmark'), ' '])])
     , h('td.px2.py1.align-middle', [h('a.btn.outline.blue',  {on: {click: [events.startFocus$, task]}}, 'Focus')])
-    , h('td.px2.py1.align-middle', [h('a.btn.red.icon-blocked', {on: {click: [events.remove$, task.name]}})])
+    , h('td.px2.py1.align-middle', [h('a.btn.red.icon-blocked', {on: {click: [events.remove$, task.time]}})])
     ])
   , filtered
   )
