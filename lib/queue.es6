@@ -14,6 +14,7 @@ import moment from 'moment'
 import getFormData from './get-form-data.es6'
 import prependTasks from './prepend-tasks.es6'
 import filterMatch from './filter-match.es6'
+import findParent from './find-parent.es6'
 
 const init = events => {
   events = R.merge({
@@ -53,7 +54,7 @@ const init = events => {
   let rowOver$ = R.compose(
     flyd_filter(t => t !== null)
   , dropRepeats
-  , flyd.map(ev => Number(ev.target.parentNode.getAttribute('data-timestamp')))
+  , flyd.map(ev => Number(findParent(ev.target, 'tr').getAttribute('data-timestamp')))
   )(events.dragover$)
 
   let searchTerm$ = flyd.map(ev => ev.currentTarget.value, events.filter$)
