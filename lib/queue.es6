@@ -40,7 +40,7 @@ const init = events => {
   }
 
   let newTask$ = flyd.map(
-    submitForm({time: Date.now(), duration: 0, points: 1, id: 1}, {points: p => Number(p), id: ()=> uuid.v1()})
+    submitForm({time: Date.now, duration: s => s || 0, points: p => Number(p), id: uuid.v1})
   , events.submit$)
 
   // dragstart
