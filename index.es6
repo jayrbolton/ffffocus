@@ -1,6 +1,6 @@
 import snabbdom from 'snabbdom'
 import flyd from 'flyd'
-import flyd_ui from './lib/flyd-ui.es6'
+import flyd_construct from '../flyd-construct/index'
 import main from './lib/main.es6'
 import R from 'ramda'
 
@@ -14,7 +14,7 @@ const patch = snabbdom.init([
 
 // component -> state$
 
-let state$ = flyd_ui(main.init())
+let state$ = flyd_construct(main.init())
 
 let vtree$ = flyd.map(R.apply(main.view), state$)
 

@@ -1,4 +1,17 @@
 
+body, html {
+  height: 100%;
+}
+
+body {
+  background: #EFFAF7;
+}
+
+.container {
+  background: white;
+  min-height: 100%;
+}
+
 [draggable] {
   -moz-user-select: none;
   -khtml-user-select: none;
@@ -17,20 +30,9 @@
 }
 
 /* Dragging over a row to drop on */
-tr.isOver td, tr.isOver:last-child td {
-  border-top: 2px dashed #888;
+.row.isOver {
+  border: 2px dashed #888;
   border-bottom: 2px dashed #888;
-}
-tr.isOver td:first-child {
-  border-left: 2px dashed #888;
-}
-tr.isOver td:last-child {
-  border-right: 2px dashed #888;
-}
-
-.isDragging {
-  opacity: 0.99; /* This is a hacky fix that I fell upon by trial and error that makes it so the "cursor ghost" of your dragging image gets displayed for table-rows */
-  box-shadow: -3px 3px 16px -6px rgba(0,0,0,0.75);
 }
 
 /* Redesign inputs */
@@ -47,10 +49,61 @@ input.field {
   outline: none;
   border-color: #888;
   box-shadow: none;
-
 }
 
 /* Redesign th */
 .table-light th {
   border-bottom-width: 0px;
 }
+
+.field:invalid, .field.is-error {
+  border-color: green;
+}
+
+.field:invalid:focus, .field:invalid.is-focused, .field.is-error:focus, .field.is-error.is-focused {
+  box-shadow: none;
+}
+
+.pointDot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 14px;
+  background: #38C47D;
+  margin-right: 2px;
+}
+.pointDot:last-child {
+  margin-right: 0;
+}
+
+.row {
+  border-bottom: 1px solid #ddd;
+  position: relative;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: #eee;
+}
+
+.showOnRowHover {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 5px;
+  background: #eee;
+}
+
+.row:hover .showOnRowHover {
+  display: inline-block;
+}
+
+.ellipsify {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+

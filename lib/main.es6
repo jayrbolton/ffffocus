@@ -13,9 +13,10 @@ import flyd_ui from './flyd-ui.es6'
 import queue from './queue.es6'
 import finished from './finished.es6'
 import timer from './timer.es6'
+import persistLS from './persist-ls.es6'
 
 const init = ()=> {
-  let defaultState = { currentPage: localStorage.getItem('currentPage') || 'queue' }
+  let defaultState = { currentPage: persistLS.read('currentPage') || 'queue' }
   let events = {
     jumpPage$: flyd.stream()
   , startFocus$: flyd.stream()
@@ -30,12 +31,13 @@ const init = ()=> {
   , flyd.map(()=> 'timer', events.startFocus$)
   ])
 
-  let saveToLS$ = flyd_filter(p => p !== 'timer', jumpPage$)
+  let savePage$ = flyd_filter(p => p !== 'timer', jumpPage$)
 
   // Array of pairs of streams and updater functions that set the state based on new values from the streams
   let updates = [
     [jumpPage$,              R.assoc('currentPage')]
-  , [saveToLS$,              persistLS]
+  , [savePage$,              (page, s) => persistLS('currentPage', page) && s]
+  , [events.stopFocus$,      updateTaskFromFocus]
   ]
 
   // Child modules
@@ -48,10 +50,13 @@ const init = ()=> {
   return {defaultState, events, updates, children}
 }
 
-
-const persistLS = (page, state) => {
-  localStorage.setItem('currentPage', page)
-  return state
+// When the user hits "return to queue", let's save the task's new duration into the queue
+const updateTaskFromFocus = (_, state) => {
+  let task = state.timer.currentTask
+  let idx = R.findIndex(R.compose(R.equals(task.id), R.prop('id')), state.queue.tasks)
+  let tasks = R.compose(R.insert(idx, task), R.remove(idx, 1))(state.queue.tasks)
+  persistLS('queue.tasks', tasks)
+  return R.assocPath(['queue', 'tasks'], tasks, state)
 }
 
 
@@ -63,11 +68,15 @@ const view = (events, state) => {
     content = finished.view(events.finished, state.finished)
   } else if(state.currentPage === 'timer') {
     return timer.view(events.timer, state.timer)
+  } else if(state.currentPage === 'recurring') {
+    content = h('p.p2', 'under construction lol')
   }
   return h('div.container.p2', [
     h('ul.list-reset.tabNav.mb0', [
       navBtn(events.jumpPage$, state.currentPage, 'queue')
     , ' '
+    // , navBtn(events.jumpPage$, state.currentPage, 'recurring')
+    // , ' '
     , navBtn(events.jumpPage$, state.currentPage, 'finished')
     ])
   // , h('hr')
