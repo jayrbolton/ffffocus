@@ -27,9 +27,8 @@ const init = events => {
 
   flyd.map(s => console.log(s), events.finishTask$)
 
-
   let newFinishedTask$ = flyd.map(
-    submitForm({finishedAt: Date.now(), time: Date.now(), points: 1, id: 1}, {points: p => Number(p), id: uuid.v1})
+    submitForm({finishedAt: 1, time: 1, points: 1, id: 1}, {points: p => Number(p), id: uuid.v1, time: Date.now, finishedAt: Date.now})
   , events.submit$)
 
   let saveToLS$ = flyd_mergeAll([events.remove$, events.finishTask$, newFinishedTask$])
