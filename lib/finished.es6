@@ -62,7 +62,7 @@ const view = (events, state) => {
     let groups = R.groupBy(t => moment(t.finishedAt).startOf('day'), state.tasks)
     let groupVals = R.values(groups)
     let sums = R.map(R.compose(R.sum, R.map(R.prop('points'))), groupVals)
-    let avg = sums / groupVals.length
+    let avg = Math.round(R.sum(sums) / groupVals.length)
     let trs = R.compose(
       R.flatten
     , R.values
